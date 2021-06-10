@@ -1,0 +1,352 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0101)http://emart.mocah.co.kr:18080/cis/ssc/sscmainview.do?param1=1D7CF23077A2295B&param2=449A281C647196E3 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>모바일쿠폰발송시스템</title> 
+	
+	<meta http-equiv="Cache-Control" content="no-cache"> 
+	<meta http-equiv="Expires" content="0">
+	<meta http-equiv="Pragma" content="no-cache">
+	
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/lightbox-plus-jquery.min.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery-1.9.1.min.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/common.js.다운로드" charset="utf-8"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery-ui-1.10.3.custom.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery.form.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery.cookie.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/calendar.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery.number.min.js.다운로드"></script>
+	<script type="text/javascript" src="./모바일쿠폰발송시스템_files/jquery.modal.js.다운로드"></script>
+	
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/lightbox.min.css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/calendar.css" type="text/css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/customers.css" type="text/css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/jquery-ui-1.10.3.custom.css" type="text/css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/topmenu.css" type="text/css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/jquery.modal.css">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/all.css" crossorigin="anonymous">
+	<link rel="stylesheet" href="./모바일쿠폰발송시스템_files/new_custom.css" type="text/css">
+	<style type="text/css">
+	.listTable th { background-color: #3790CC }
+	</style>
+
+	<script type="text/javascript">
+		$(document).ready(function() {
+			
+				
+				
+				
+				
+				
+			
+			
+			// 조회
+			$('#schSscBtn').on("click",function()
+			{
+				if (validateForm('frm'))
+				{
+					$('#actType').val("search");
+					$('#frm').attr("action","../ssc/sscmainview.do");
+					$('#frm').submit();
+				}
+			});
+			
+			// 지급교환 초기화버튼 클릭
+			$('#frmReset').on("click",function()
+			{
+				$('#cpnNo').val('');
+				$('#autnNo').val('');
+				$('#schlist').html('');
+				$('#eamt').val('0');
+				$('#gcod_div').html('');
+				$('#actType').val('');
+			});
+			
+			// 지급처리 초기화버튼 클릭
+			$('#ggResetBtn').on("click",function()
+			{
+				$('#gcod_div').html('');
+			});
+			
+			// 입력버튼 클릭
+			$('#popGgBtn').on("click",function()
+			{
+				if (removeComma($('#eamt').val())>0) {
+					popUp = window.open("../ssc/sscggPop.do","aa","width=500,height=350,resizable=no,scrollbars=no");
+					popUp.focus();	
+				}
+				else {
+					alert("지급처리할 상품권을 [지급조회] 목록에서 선택하여 주십시요.");
+					return;
+				}
+			});
+			
+			// 삭제버튼 클릭
+			$('#delGgBtn').on("click",function()
+			{
+				$("#gcod_div input:checkbox[name='didx']:checked").each(function() {
+					$('#tr'+$(this).val()).remove();
+				});
+			});
+			
+			// 지급확정 버튼 클릭
+			$('#ggCfmBtn').on("click",function()
+			{
+				var cint = 0;
+				var kinTotAmt = 0;
+				$("#gcod_div input[name='excSat']").each(function() {
+					kinTotAmt = kinTotAmt + ($(this).val()*1);
+					cint++;
+				});
+				
+				if (cint==0) {
+					alert("지급하실 권종을 선택하여 주십시요.");
+					return;
+				}
+				else {
+					if (kinTotAmt != removeComma( $('#eamt').val() ) ) {
+						alert("선택하신 권종의 전체금액이 지급금액과 일치하지 않습니다.");
+						return;
+					}
+					else {
+						if(confirm("지급확정 하시겠습니까?")){
+							
+							$.ajax({
+								url : "sscmainviewActAjax.do"
+								  , data :  $("#frm").serialize()
+								  , type : "POST"
+								  , async : false
+								  , cache : false
+								  , success : function(data){
+										  if(data.RESULT == '0000' ){
+											  alert("지급되었습니다.");
+
+											  $('#actType').val("search");
+											  $('#frm').attr("action","../ssc/sscmainview.do");
+											  $('#frm').submit();
+
+										  }else if(data.RESULT == '9990' ){
+											  alert("지급에 실패하였습니다.");
+										  }else if(data.RESULT == '9994' ){
+											  alert("복호화에 실패하였습니다.");
+										  }else if(data.RESULT == '9995' ){
+											  alert("접근할 수 없는 지점입니다.");
+										  }else if(data.RESULT == '9996' ){
+											  alert("점포정보가 확인불가능 합니다.");
+										  }else if(data.RESULT == '9997' ){
+											  alert("파라메터 값이 유효하지 않습니다.");
+										  }else if(data.RESULT == '9998' ){
+											  alert("전달된 파라메터 값이 없습니다.");
+										  } else{
+												alert("확인되지 않은 에러.");
+										  }
+									  },
+									  error : function(XMLHttpRequest, textStatus, errorThrown){
+										  alert("시스템 오류가 발생되었습니다.");
+									  }
+							});
+						}
+					}
+				}
+			});
+		});
+		
+		// 지급처리항목 수량변경
+		function coupon_cnt(index, amount) 
+		{
+			var cnt = $("#gcod_div input[name='ggCnt']").eq(index).val();
+			if (checkDataType('N',cnt)) 
+			{
+				var resultAmt = amount * cnt;
+				$($("#gcod_div input[id=excSat]").get(index)).val(resultAmt);
+				$($("#gcod_div .ssamt").get(index)).text(addComma(resultAmt));
+			} else if (cnt != '') 
+			{
+				alert("올바른 정수를 입력해주세요.");
+				$("#gcod_div input[name='ggCnt']").eq(index).val('0');
+				$($("#gcod_div input[id=excSat]").get(index)).val("0");
+				$($("#gcod_div .ssamt").get(index)).text("0");
+			}
+		}
+		
+		// 지급교환 목록 항목선택
+		function setAmt(obj , it) {
+			if (obj.checked) {
+				$('#eamt').val(addComma(it))
+			}
+			else {
+				$('#eamt').val("0");
+			}
+		}
+		
+		function setGgLst(html_data) {
+			$("#gcod_div").html(html_data);
+		}
+		
+	</script>
+</head>
+
+
+
+
+
+
+<h5>이마트 신세계상품권모바일 조회 · 승인 시스템</h5>
+<body style="">
+<form id="frm" name="frm" method="post">
+	<input type="hidden" id="actType" name="actType" value="">
+	<input type="hidden" id="param1" name="param1" value="1D7CF23077A2295B">
+	<input type="hidden" id="param2" name="param2" value="449A281C647196E3">
+	<div style="width:1020px;padding:10px;" class="content_wrap"><!--210610-->
+		<div class="cntsHead" style="width:100%;height:30px;">
+			<table style="width:100%;">
+				<tbody>
+				<tr> 
+					<td style="font-size: 14px;font-weight: bold;text-align:left;"><!-- 210610 -->
+						회계단위(지급점포) : <input type="text" id="disp" name="disp" value="[H01] E-본사" style="padding-left:5px;width:131px;" readonly="readonly">
+					</td>
+					<td style="font-size: 12px;font-weight: bold;padding-left:5px;text-align: right;">
+						재발송,승인오류,시스템오류 문의 : <span style="color: red">02-6965-7110 ( 모카커뮤니케이션즈 고객센터 )</span>  
+					</td>
+				</tr>
+			</tbody>
+			</table>
+		</div>
+		<table style="width: 1020px;border-spacing: 0 0 0 0;margin-top: 15px;" class="main_wrap">  <!--210610-->
+			<tbody>
+			<tr>
+				<td> 
+					<div class="sectionHead">
+						<div class="sectionHeadTit">▶ 지급조회 </div>
+						<!--<img src="./모바일쿠폰발송시스템_files/search.jpg" id="schSscBtn" style="cursor: pointer">
+						<img src="./모바일쿠폰발송시스템_files/reset.jpg" id="frmReset" style="cursor: pointer">-->
+						<button type="button" class="bg_red all_btn">조회</button>
+						<button type="button" class="bg_gray all_btn">초기화</button>
+					</div>
+					<table class="schTable" id="searchArea">  
+						<colgroup>
+							<col width="90">
+							<col width="150">
+							<col width="90">
+							<col>
+						</colgroup>
+						<tbody><tr>
+							<th>쿠폰번호</th>
+							<td class="ali_left"><input type="text" id="cpnNo" name="cpnNo" value="" placeholder="숫자만 입력" style="text-align: center;width:120px;" data_msg="쿠폰번호" data_req="true" data_type="N" data_max_length="13" maxlength="13"></td>
+							<th>인증번호</th>
+							<td class="ali_left"><input type="text" id="autnNo" name="autnNo" value="" placeholder="숫자만 입력" style="text-align: center;width:90px;" data_msg="인증번호" data_req="true" data_type="N" data_max_length="8" maxlength="8"></td>
+						</tr>
+					</tbody></table>
+					<div style="width:1020px;height:150px;margin-top:10px;border-color: #cccccc;border-style: solid;border-width: 1px;" class="divTable"><!-- 210610 -->
+						<table class="listTable" id="listTable" style="width: 100%;"> 
+							<thead>
+							</thead><colgroup>
+								<col width="80">
+								<col width="80">
+								<col width="200">
+								<col width="200">
+								<col width="200">
+								<col>
+							</colgroup>  
+							<tbody><tr>
+								<th>No</th>
+								<th>선택</th>
+								<th>지급여부</th>
+								<th>행사명</th>
+								<th>지급가능일</th>
+								<th>지급가능액</th>
+							</tr>
+							
+							</tbody><tbody id="schlist">
+							
+							</tbody>
+						</table>
+					</div>
+	
+					<div class="sectionHead" style="margin-top:30px;">
+						<div class="sectionHeadTit">▶ 지급처리 </div>
+						<!--
+						<img src="./모바일쿠폰발송시스템_files/input.jpg" id="popGgBtn" style="cursor: pointer">
+						<img src="./모바일쿠폰발송시스템_files/del.jpg" id="delGgBtn" style="cursor: pointer">
+						<img src="./모바일쿠폰발송시스템_files/reset.jpg" id="ggResetBtn" style="cursor: pointer">
+						-->
+						<button type="button" class="bg_red all_btn">입력</button>
+						<button type="button" class="bg_gray all_btn">삭제</button>
+						<button type="button" class="bg_gray all_btn">초기화</button>
+					</div>
+					<table class="schTable" id="dsArea">  
+						<colgroup>
+							<col width="80">
+							<col width="140">
+							<col width="80">
+							<col width="100">
+							<col width="80">
+							<col width="100">
+							<col width="80">
+							<col>
+						</colgroup>
+						<tbody><tr>
+							<th>지급처</th>
+							<td class="ali_left">
+								<input type="text" id="a" name="a" value="H01" style="text-align: center;width:50px;" readonly="readonly">
+								<input type="text" id="b" name="b" value="E-본사" style="text-align: center;width:60px;" readonly="readonly">
+							</td>
+							<th>지급일자</th>
+							<td class="ali_left">
+								<input type="text" id="c" name="c" value="2021-06-10" style="text-align: center;width:80px;" readonly="readonly">
+							</td>
+							<th>지급자</th>
+							<td class="ali_left">
+								<input type="text" id="d" name="d" value="EMART" style="text-align: center;width:70px;" readonly="readonly">
+							</td>
+							<th>지급금액</th>
+							<td class="ali_left">
+								<input type="text" id="eamt" name="eamt" value="0" style="text-align: center;width:110px;" readonly="readonly">
+							</td>
+						</tr>
+					</tbody></table>
+					<table style="margin-top:10px; background-color:#fff;">
+						<tbody><tr style="">
+							<td style="width:100%" class="con02"> <!-- 210610 -->
+								<div style="width:100%;height:240px;overflow-y:scroll; border-color: #cccccc;border-style: solid;border-width: 1px; box-sizing:border-box;"><!-- 210610 -->
+									<table class="listTable" id="listTable" style="width: 100%;">
+										<colgroup>
+											<col width="80">
+											<col width="80">
+											<col width="150">
+											<col width="200">
+											<col width="120">
+											<col width="100">
+											<col>
+										</colgroup>
+										<thead>
+										<tr>
+											<th rowspan="2">No</th>
+											<th rowspan="2">선택</th>
+											<th colspan="2">권종</th>
+											<th rowspan="2">권면금액</th>
+											<th rowspan="2">매수</th>
+											<th rowspan="2">금액</th>
+										</tr>
+										<tr>
+											<th style="border-top:#e9e9e9 1px solid;background-color: #625f99">코드</th>
+											<th style="border-top:#e9e9e9 1px solid;background-color: #625f99">명</th>
+										</tr>
+										</thead>
+										<tbody id="gcod_div">
+										</tbody>
+									</table>
+								</div>
+							</td> 
+							<td style="padding:5px; border:1px solid #ddd; box-sizing:border-box;">
+								<!--<img src="./모바일쿠폰발송시스템_files/confirm.jpg" style="cursor:pointer" id="ggCfmBtn">-->
+								<button type="button" class="bg_blue btn_big">지급확정</button>
+							</td>
+						</tr>
+					</tbody></table>
+				</td>
+			</tr>
+		</tbody></table>
+	</div>
+</form>
+
+<div id="lightboxOverlay" class="lightboxOverlay" style="display: none;"></div><div id="lightbox" class="lightbox" style="display: none;"><div class="lb-outerContainer"><div class="lb-container"><img class="lb-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="><div class="lb-nav"><a class="lb-prev" href="http://emart.mocah.co.kr:18080/cis/ssc/sscmainview.do?param1=1D7CF23077A2295B&amp;param2=449A281C647196E3"></a><a class="lb-next" href="http://emart.mocah.co.kr:18080/cis/ssc/sscmainview.do?param1=1D7CF23077A2295B&amp;param2=449A281C647196E3"></a></div><div class="lb-loader"><a class="lb-cancel"></a></div></div></div><div class="lb-dataContainer"><div class="lb-data"><div class="lb-details"><span class="lb-caption"></span><span class="lb-number"></span></div><div class="lb-closeContainer"><a class="lb-close"></a></div></div></div></div><style>.tb_button {padding:1px;cursor:pointer;border-right: 1px solid #8b8b8b;border-left: 1px solid #FFF;border-bottom: 1px solid #fff;}.tb_button.hover {borer:2px outset #def; background-color: #f8f8f8 !important;}.ws_toolbar {z-index:100000} .ws_toolbar .ws_tb_btn {cursor:pointer;border:1px solid #555;padding:3px}   .tb_highlight{background-color:yellow} .tb_hide {visibility:hidden} .ws_toolbar img {padding:2px;margin:0px}</style></body></html>

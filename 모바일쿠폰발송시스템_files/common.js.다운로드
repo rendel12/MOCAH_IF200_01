@@ -1,0 +1,1226 @@
+$(document).ready(function() {
+	var matched, browser;
+	 
+    // Use of jQuery.browser is frowned upon.
+    // More details: http://api.jquery.com/jQuery.browser
+    // jQuery.uaMatch maintained for back-compat
+    jQuery.uaMatch = function (ua) {
+        ua = ua.toLowerCase();
+ 
+        var match = /(chrome)[ \/]([\w.]+)/.exec(ua) ||
+            /(webkit)[ \/]([\w.]+)/.exec(ua) ||
+            /(opera)(?:.*version|)[ \/]([\w.]+)/.exec(ua) ||
+            /(msie) ([\w.]+)/.exec(ua) ||
+            ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec(ua) ||
+            [];
+ 
+        return {
+            browser: match[1] || "",
+            version: match[2] || "0"
+        };
+    };
+ 
+    matched = jQuery.uaMatch(navigator.userAgent);
+    browser = {};
+ 
+    if (matched.browser) {
+        browser[matched.browser] = true;
+        browser.version = matched.version;
+    }
+ 
+    // Chrome is Webkit, but Webkit is also Safari.
+    if (browser.chrome) {
+        browser.webkit = true;
+    } else if (browser.webkit) {
+        browser.safari = true;
+    }
+ 
+    jQuery.browser = browser;
+    
+    $.datepicker.setDefaults({
+		    dateFormat: 'yymmdd',
+		    prevText: '이전 달',
+		    nextText: '다음 달',
+		    monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+		    monthNamesShort: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+		    dayNames: ['일','월','화','수','목','금','토'],
+		    dayNamesShort: ['일','월','화','수','목','금','토'],
+		    dayNamesMin: ['일','월','화','수','목','금','토'],
+		    showMonthAfterYear: true,
+		    changeMonth: true,
+		    changeYear: true,
+		    yearSuffix: '년'
+    });
+    
+});
+
+
+// 밀리세컨드를 Date형식으로 변경 (yyyy-MM-dd HH:mm:ss)
+function msToDate(item) {
+	  var myDate = new Date(item);
+	  
+	  return myDate.getFullYear() + '-' +('0' + (myDate.getMonth()+1)).slice(-2)+ '-' +  myDate.getDate() + ' '+myDate.getHours()+ ':'+('0' + (myDate.getMinutes())).slice(-2)+ ':'+myDate.getSeconds();;
+}
+
+
+
+//전화번호 하이픈(-) 추가  함수
+function phoneFomatter(num){
+
+    var formatNum = '';
+
+    if(num.length==11){
+        formatNum = num.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    }else if(num.length==8){
+        formatNum = num.replace(/(\d{4})(\d{4})/, '$1-$2');
+    }else{
+        if(num.indexOf('02')==0){
+            formatNum = num.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+        }else{
+        	formatNum = num.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+    }
+    return formatNum;
+}
+
+
+//생년월일 하이픈(-) 추가 함수
+function birthFormat(item){
+	
+	var year = item.substring(0, 4);
+	var month = item.substring(4, 6);
+	var day = item.substring(6, 8);
+	var sumBirth = year+'-'+month+'-'+day;
+	return sumBirth;
+}
+
+//숫자 금액 표시 함수(콤마 추가)
+function addComma(n) 
+{
+	 if(isNaN(n)){return 0;}
+	  var reg = /(^[+-]?\d+)(\d{3})/;   
+	  n += '';
+	  while (reg.test(n))
+	    n = n.replace(reg, '$1' + ',' + '$2');
+	  return n;
+}
+
+//금액 콤마 제거 함수
+function removeComma(input)
+{
+	
+    var tmp = input.replace(/,/g,'');    
+    return tmp;
+}
+
+//유효성 검사(숫자 및 알파벳 허용하는 Case)
+function checkDataType(type , value) {
+
+	var regType = "";
+	
+	if (type=='N') {
+		regType = /^[0-9+]*$/;
+	}else if (type=='NC') {
+		regType = /^[0-9]+(\.[0-9]+)?$/;
+	}else if (type=='AN') {
+		regType = /^[A-Za-z0-9+]*$/;
+	}else if (type=='AHN') {
+		regType = /^[A-Za-zㄱ-ㅎㅏ-ㅣ가-힣0-9+]*$/;
+	}else if (type=='D') {
+		return (dateValid(value));
+	}
+	else {
+		return true;
+	}
+	return regType.test(value);
+}
+
+/**
+ * 입력 값이 null or "" 일때 true를 반환한다.
+ */
+function isNull(str) {
+	if ( null == str || "" == str){
+		return true;
+	}
+	return false;
+}
+
+/**
+ * 입력한 날짜의 유효성을 검사하여 유효한 경우 true를 반환한다.
+ */
+function dateValid(str){
+	  if(!/^(\d){8}$/.test(str)) { return false;}
+	  else {
+		  var y = str.substr(0,4),
+		    m = str.substr(4,2) - 1,
+		    d = str.substr(6,2);
+	    var D = new Date(y,m,d);
+	    return (D.getFullYear() == y && D.getMonth() == m && D.getDate() == d) ?  D  : "";
+	  }
+}
+
+
+/**
+ * 휴대폰번호 검증 
+ * 양식이 맞을 경우 문자열 반환 틀릴경우 null 반환
+ * @param mdn
+ * @returns
+ */
+function isMdn(mdn){
+	
+	mdn = addMdnHyphen(mdn);
+	var mdnFormat=/^01[016789]-\d{3,4}-\d{4}$/g;
+	return mdnFormat.exec(mdn);
+}
+
+/**
+ * 휴대폰번호 '-'(하이픈) 추가
+ * @param mdn
+ */
+function addMdnHyphen(mdn){
+	if( 10 == mdn.length ){
+		mdn = mdn.substring(0,3) + "-" + mdn.substring(3,6) + "-" + mdn.substring(6);
+		return mdn;
+	}
+	
+	if( 11 == mdn.length ){
+		mdn = mdn.substring(0,3) + "-" + mdn.substring(3,7) + "-" + mdn.substring(7);
+		return mdn;
+	}
+}
+
+/**
+ * 사업자 등록번호 '-'(하이픈) 추가
+ * @param mdn
+ */
+function addOrgNumHyphen(mdn){
+	mdn = mdn.replace(/-/g,'');
+	if( 5 < mdn.length ){
+		mdn = mdn.substring(0,3) + "-" + mdn.substring(3,5) + "-" + mdn.substring(5,mdn.length);
+	}
+	else if (5 >= mdn.length && mdn.length > 2){
+		mdn = mdn.substring(0,3) + "-" + mdn.substring(3,mdn.length);
+	}
+	
+	return mdn;
+	
+}
+
+
+/**
+ * 문자열을 바이트로 반환
+ */
+function getByteLength(str) {
+	var byteLength = 0;
+	for (var inx = 0; inx < str.length; inx++) {
+		var oneChar = escape(str.charAt(inx));
+	        if ( oneChar.length == 1 ) {
+			byteLength ++;
+		} else if (oneChar.indexOf("%u") != -1) {
+			byteLength += 2;
+		} else if (oneChar.indexOf("%") != -1) {
+			byteLength += oneChar.length/3;
+		}
+	}
+	return byteLength;
+}
+
+function getByteLengthSplit(elVal , len){
+    
+	var codeByte = 0;
+	var msg = "";
+    
+    for (var idx = 0; idx < elVal.length; idx++) {
+        var oneChar = escape(elVal.charAt(idx));
+        if ( oneChar.length == 1 ) {
+            codeByte ++;
+        } else if (oneChar.indexOf("%u") != -1) {
+            codeByte += 2;
+        } else if (oneChar.indexOf("%") != -1) {
+            codeByte ++;
+        }
+        
+        if (len >= codeByte) {
+        	msg = msg+elVal.charAt(idx);
+        }
+    }
+    return msg;
+}
+
+//유효성 검사
+function validate() {
+	return validateForm();
+}
+
+function validateForm(el) {
+	var result = true;
+	
+	if (!el) { el = 'body'; }else{ el = '#'+el ;}
+	
+	$(el+' :input').each(function() {
+		if ($(this).val()=='' && $(this).attr('data_req') == 'true' ) 
+		{
+			if ( $(this).attr('data_more_msg') ) {
+				alert( "[ "+$(this).attr('data_msg') + " ] 을(를) 입력하여 주십시요." + "\n\n[ " + $(this).attr('data_msg')+ " ] 은(는) " + $(this).attr('data_more_msg') );
+			}
+			else {
+				alert( "[ "+$(this).attr('data_msg') + " ] 을(를) 입력하여 주십시요." );
+			}
+
+			if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {
+				$(this).focus();
+			}
+			result = false;
+			return false;
+		}else {
+			if ($(this).attr('data_type') && $(this).val()!='' ) {
+				switch ($(this).attr('data_type')) {
+				  case 'N'   : if (!checkDataType('N',$(this).val())) { alert( "[ " + $(this).attr('data_msg') + " ] 는(은) [숫자] 만 입력가능합니다."); $(this).focus() ; result = false; return false;}
+				               break;
+				  case 'AN'   : if (!checkDataType('AN',$(this).val())) { alert( "[ " + $(this).attr('data_msg') + " ] 는(은) [숫자 및 영문자] 만 입력가능합니다."); $(this).focus() ; result = false; return false;}
+				  			   break;
+				  case 'D'   : if (!checkDataType('D',$(this).val())) { alert( "[ " + $(this).attr('data_msg') + " ] 는(은) 유효한 일자가 아닙니다."); $(this).focus() ; result = false; return false;}
+				  				break;
+				  case 'AHN'   : if (!checkDataType('AHN',$(this).val())) { alert( "[ " + $(this).attr('data_msg') + " ] 는(은) [숫자 와 영문자 및 한글]만 입력이 가능합니다."); $(this).focus() ; result = false; return false;}
+	  							break;
+				  case 'NC'   : if (!checkDataType('NC',$(this).val())) { alert( "[ " + $(this).attr('data_msg') + " ] 는(은) [숫자] 또는 [숫자와 소수점]만 입력가능합니다."); $(this).focus() ; result = false; return false;}
+	                			break;
+				  default    : '';
+				               break;
+				}
+			}
+			if ($(this).attr('data_max_length') && $(this).val()!='' ) {
+				if (checkDataType('N',$(this).attr('data_max_length'))) {
+					if ($(this).val().length > $(this).attr('data_max_length') ) {
+						alert( "[ "+$(this).attr('data_msg') + " ] 은(는) 최대 " + $(this).attr('data_max_length') + "자리 까지만 입력 가능합니다.");
+						if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+						result = false;
+						return false;			
+					}
+				}
+				else{
+					alert("데이터 길이는 숫자만 설정 가능합니다.");
+					if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+					result = false;
+					return false;
+				}
+			}
+			if ($(this).attr('data_min_length') && $(this).val()!='' ) {
+				if ( checkDataType('N',$(this).attr('data_min_length')) ) {
+					if ($(this).val().length < $(this).attr('data_min_length') ) {
+						alert("[ "+$(this).attr('data_msg') + " ] 은(는) 최소 " + $(this).attr('data_min_length') + "자리 이상 입력 하여야 합니다.");
+						if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+						result = false;
+						return false;			
+					}
+				}
+				else{
+					alert("데이터 길이는 숫자만 설정 가능합니다.");
+					if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+					result = false;
+					return false;
+				}
+			}
+			if ($(this).attr('data_more_great') ) {
+				
+				if ( $('#'+$(this).attr('data_more_great')).val().trim().length < 1 ) {
+					alert( "["+ $('#'+$(this).attr('data_more_great')).attr('data_msg') +"] 의 입력값이 없습니다." );
+					result = false;
+					return false;
+				}
+				else if ( $('#'+$(this).attr('data_more_great')).attr('data_type') != 'N' &&  $('#'+$(this).attr('data_more_great')).attr('data_type') != 'D' ) 
+				{
+					alert( "["+ $('#'+$(this).attr('data_more_great')).attr('data_msg') +"] 의 입력값은 숫자 또는 날짜 형식만 허용됩니다." );
+					result = false;
+					return false;
+				}
+				else if ($(this).attr('data_type') != 'N' && $(this).attr('data_type') != 'D' ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 의 입력값은 숫자 또는 날짜 형식만 허용됩니다." );
+					result = false;
+					return false;
+				}
+				else if ( $(this).val() == '' ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 을 입력하여 주십시요." );
+					result = false;
+					return false;
+				}
+				else if (   $('#'+$(this).attr('data_more_great')).val() >= $(this).val() ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 의 입력값은  ["+ $('#'+$(this).attr('data_more_great')).attr('data_msg') +"] 의  값보다 커야 합니다." ); 
+					result = false;
+					return false;
+				}
+			}
+			if ($(this).attr('data_more_less') ) {
+				
+				if ( $('#'+$(this).attr('data_more_less')).val().trim().length < 1 ) {
+					alert( "["+ $('#'+$(this).attr('data_more_less')).attr('data_msg') +"] 의 입력값이 없습니다." );
+					result = false;
+					return false;
+				}
+				else if ( $('#'+$(this).attr('data_more_less')).attr('data_type') != 'N' && $('#'+$(this).attr('data_more_less')).attr('data_type') != 'D'  ) 
+				{
+					alert( "["+ $('#'+$(this).attr('data_more_less')).attr('data_msg') +"] 의 입력값은 숫자 또는 날짜 형식만 허용됩니다." );
+					result = false;
+					return false;
+				}
+				else if ($(this).attr('data_type') != 'N' && $(this).attr('data_type') != 'D' ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 의 입력값은 숫자 또는 날짜 형식만 허용됩니다." );
+					result = false;
+					return false;
+				}
+				else if ( $(this).val() == '' ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 을 입력하여 주십시요." );
+					result = false;
+					return false;
+				}
+				else if (   $('#'+$(this).attr('data_more_less')).val() >= $(this).val() ) 
+				{
+					alert( "["+ $(this).attr('data_msg') +"] 의 입력값은  ["+ $('#'+$(this).attr('data_more_great')).attr('data_msg') +"] 의  값보다 적어야 합니다." ); 
+					result = false;
+					return false;
+				}
+			}
+		}
+	});
+	
+	if (result) {
+		$(el+' select').each(function() {
+			if ($(this).val()=='' && $(this).attr('data_req') == 'true') {
+				alert( $(this).attr('data_msg') + ' 을(를) 선택하여 주십시요.');
+				$(this).focus();
+				result = false;
+				return false;
+			}
+		});
+	}
+	if (result) {
+		$(el+' textarea').each(function() {
+			if ($(this).val()=='' && $(this).attr('data_req') == 'true') {
+				alert( $(this).attr('data_msg') + ' 을(를) 입력하여 주십시요.');
+				if(! $(this).prop('disabled') ) {
+					$(this).focus();
+				}
+				result = false;
+				return false;
+			}
+			if ($(this).attr('data_max_length') && $(this).val()!='' ) {
+				if (checkDataType('N',$(this).attr('data_max_length'))) {
+					if ($(this).val().length > $(this).attr('data_max_length') ) {
+						alert( "[ "+$(this).attr('data_msg') + " ] 은(는) 최대 " + $(this).attr('data_max_length') + "자리 까지만 입력 가능합니다.");
+						if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+						result = false;
+						return false;			
+					}
+				}
+				else{
+					alert("데이터 길이는 숫자만 설정 가능합니다.");
+					if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+					result = false;
+					return false;
+				}
+			}
+			if ($(this).attr('data_min_length') && $(this).val()!='' ) {
+				if ( checkDataType('N',$(this).attr('data_min_length')) ) {
+					if ($(this).val().length < $(this).attr('data_min_length') ) {
+						alert("[ "+$(this).attr('data_msg') + " ] 은(는) 최소 " + $(this).attr('data_min_length') + "자리 이상 입력 하여야 합니다.");
+						if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+						result = false;
+						return false;			
+					}
+				}
+				else{
+					alert("데이터 길이는 숫자만 설정 가능합니다.");
+					if(!$(this).prop('readonly') && ! $(this).prop('disabled') && $(this).prop('type')!='hidden' ) {$(this).focus();}
+					result = false;
+					return false;
+				}
+			}
+		});
+	}
+	return result;
+}
+
+/**
+ * 특정 길이까지만 문자열을 허용한다.
+ * @param el 값을 체크할 object
+ * @param disEl 안내문구를 표시할 object
+ * @param len 길이
+ */
+function maxByteCheckAct(el , disEl , len) {
+	var prodNameByte = getByteLength(el.val());
+	disEl.html(prodNameByte);
+	if(prodNameByte > len) {
+		el.val( getByteLengthSplit(el.val() , len ) ) ;
+		alert( len + 'Byte까지 입력 가능합니다.');
+		disEl.html(getByteLength(el.val()));
+	}
+}
+
+/**
+ * 랜덤문자열 생성
+ * @returns {String}
+ */
+function randomString() {
+	var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+	var string_length = 15;
+	var randomstring = '';
+	for (var i=0; i<string_length; i++) {
+		var rnum = Math.floor(Math.random() * chars.length);
+		randomstring += chars.substring(rnum,rnum+1);
+	}
+	return randomstring;
+}
+ 
+/**
+ * 파일 필드를 리셋한다.
+ */
+fileFieldReset = function(it){
+	if ($.browser.msie) {
+		// ie 일때 input[type=file] init.
+		it.replaceWith( it.clone(true) );
+	} else {
+		// other browser 일때 input[type=file] init.
+		it.val("");
+	}
+};
+
+
+
+
+/**
+ * json 방식의 Ajax통신.
+ * @param url
+ * @param jsondata
+ * @param processFn
+ */
+jsonAjax = function (url , jsondata , processFn) {
+	
+	$.ajax({
+		url : url
+	   , data : jsondata     
+	   , type : "POST"
+	   , dataType : "JSON"
+	   , async : false
+	   , cache : false
+	   , success : processFn
+	   , error : function(XMLHttpRequest, textStatus, errorThrown){
+				   alert("시스템 오류가 발생되었습니다."); 
+			     }
+	});	
+}
+
+
+/**
+ * json 방식의 Ajax통신.
+ * @param url
+ * @param jsondata
+ * @param processFn
+ */
+htmlAjax = function (url , jsondata , processFn) {
+	
+	$.ajax({
+		url : url
+	   , data : jsondata     
+	   , type : "POST"
+	   , async : false
+	   , cache : false
+	   , success : processFn
+	   , error : function(XMLHttpRequest, textStatus, errorThrown){
+		   		   alert(textStatus);
+		   		   alert(errorThrown);
+				   alert("시스템 오류가 발생되었습니다."); 
+			     }
+	});	
+}
+
+/**
+ * Select 의 Option을 리셋한다.
+ * @param obj
+ * @param defaultTxt
+ * @param defaultVal
+ */
+resetOption = function (obj , defaultTxt , defaultVal) {
+	obj.find('option').remove();
+	obj.append($('<option>', {value : defaultVal , text : defaultTxt}));
+}
+
+/**
+ * Select 의 Option을 추가생성 한다.
+ * @param obj
+ * @param jsonList
+ * @param keyTxt
+ * @param valueTxt
+ */
+createOption = function (obj , jsonList ,  keyTxt , valueTxt) {
+
+	$.each(jsonList, function (i, item){
+		obj.append($('<option>', {
+			value : eval('item.'+keyTxt ) ,	text : eval('item.'+valueTxt )
+		}));
+	});
+}
+
+
+
+
+    //날짜 유효성검사
+    // 사용법 : isValidDate('2014-11-31')
+	// 결과 : 정상 ==> true , 실패 ==> false
+     function isValidDate(param) {
+        try
+        {
+            param = param.replace(/-/g,'');
+ 
+            // 자리수가 맞지않을때
+            if( isNaN(param) || param.length!=8 ) {
+                return false;
+            }
+             
+            var year = Number(param.substring(0, 4));
+            var month = Number(param.substring(4, 6));
+            var day = Number(param.substring(6, 8));
+ 
+            var dd = day / 0;
+ 
+             
+            if( month<1 || month>12 ) {
+                return false;
+            }
+             
+            var maxDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            var maxDay = maxDaysInMonth[month-1];
+             
+            // 윤년 체크
+            if( month==2 && ( year%4==0 && year%100!=0 || year%400==0 ) ) {
+                maxDay = 29;
+            }
+             
+            if( day<=0 || day>maxDay ) {
+                return false;
+            }
+            return true;
+ 
+        } catch (err) {
+            return false;
+        }                       
+    }
+
+
+/*비밀번호체크*/
+function chekPassword(userId , userPwd)
+{
+		// 영문,숫자,특수문자
+		var check = /^(?=.*[a-zA-Z])(?=.*[~!@#$%^&*()])(?=.*[0-9]).{8,16}$/.test(userPwd);
+		
+		if (userId=='') {
+			return '9'
+		}
+		
+		//if(!(check1||check2||check3)){
+		if(!check){
+			//alert("사용할 수 없은 조합입니다.\n패스워드 설정안내를 확인해 주세요.");
+			return '1'
+		}
+		else if(/(\w)\1\1/.test(userPwd)){
+//			alert('같은 문자를 3번 이상 사용하실 수 없습니다.\n패스워드 설정안내를 확인해 주세요.');
+			return '2'
+		}
+		else if(userPwd.search(userId)>-1){
+//			alert("비밀번호에 아이디가 포함되었습니다.\n패스워드 설정안내를 확인해 주세요.");
+			return '3'
+		}
+		else {
+			return '0'
+		}
+ }
+
+
+
+
+function excelView( fileUpload , targetDiv ) {
+	 // showLoadingBar();
+
+  //Validate whether File is valid Excel file.
+  // 한글+영문+숫자+특수문자가 제목으로 가능하도록.
+  var regex = /^([a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣0-9\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"])+(.xls|.xlsx)$/;  
+  if (regex.test(fileUpload.value.toLowerCase())) {
+      if (typeof (FileReader) != "undefined") {
+          var reader = new FileReader();
+
+          //For Browsers other than IE.
+          if (reader.readAsBinaryString) {
+              reader.onload = function (e) {
+                  ProcessExcel(e.target.result , targetDiv );
+                  
+              };
+              reader.readAsBinaryString(fileUpload.files[0]);
+              
+          } else {
+              //For IE Browser.
+              reader.onload = function (e) {
+                  var data = "";
+                  var bytes = new Uint8Array(e.target.result);
+                  for (var i = 0; i < bytes.byteLength; i++) {
+                      data += String.fromCharCode(bytes[i]);
+                  }
+
+                  ProcessExcel(data , targetDiv );
+               	
+               	// showLoadingBar();
+              };
+            reader.readAsArrayBuffer(fileUpload.files[0]);
+          }
+      } else {
+          alert("This browser does not support HTML5.");
+      }
+  } else {
+      alert("Please upload a valid Excel file.");
+  }
+};
+
+function ProcessExcel(data , targetDiv ) {
+	$('#dvExcel').show();
+	//Read the Excel File data.
+   var workbook = XLSX.read(data, { type: 'binary' });
+
+   //Fetch the name of First Sheet.
+	// var opts = {};
+	var opts = {'header': '', 'footer': '' };
+	
+	var ary = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]], opts , 1000 ); // html 과 엑셀의 행 갯수 를 리턴해줌
+	$('#'+targetDiv).html(ary[1].join(''));     
+}
+
+function excelViewReset( targetDiv ) {
+	$('#'+targetDiv).html("");
+}
+
+
+
+
+
+
+/**
+ * 입력값이 특정 문자(chars)만으로 되어있는지 체크
+ * 특정 문자만 허용하려 할 때 사용
+ * ex) if (!containsCharsOnly(str,"ABO")) {
+ *         alert("A,B,O 문자만 사용할 수 있습니다.");
+ *     }
+ *//*
+function containsCharsOnly(str,chars) {
+	for (var inx = 0; inx < str.length; inx++) {
+		if (chars.indexOf(str.charAt(inx)) == -1)
+			return false;
+	}
+	return true;
+}
+
+*//**
+ * 입력값이 알파벳,숫자로 되어있는지 체크
+ *//*
+function isAlphaNum(str) {
+	var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	return containsCharsOnly(str,chars);
+}
+*//**
+ * 특수 문자 체크
+ * @param str
+ * @returns {Boolean}
+ *//*
+function isSpecial(str){
+	
+    var patterns = /[~!@\#$%^&*\()\=+_']/g;
+    if(patterns.test(str)) //특수문자가 있을 때
+    	return true;
+     return false;//특수문자가 없을 때
+}
+
+*//**
+ * 입력값의 바이트 길이를 리턴
+ *//*
+function getByteLength(str) {
+	var byteLength = 0;
+	for (var inx = 0; inx < str.length; inx++) {
+		var oneChar = escape(str.charAt(inx));
+	        if ( oneChar.length == 1 ) {
+			byteLength ++;
+		} else if (oneChar.indexOf("%u") != -1) {
+			byteLength += 2;
+		} else if (oneChar.indexOf("%") != -1) {
+			byteLength += oneChar.length/3;
+		}
+	}
+	return byteLength;
+}
+
+*//**
+ * URL 체크
+ * @param str
+ * @returns {Boolean}
+ *//*
+function isUrl(str) {
+    var urlPattern =/http:\/\/([\w\-]+\.)+/g;
+    
+    if(urlPattern.test(str)) //URL일 경우
+    	return true;
+     return false;
+}
+
+function isId(id){
+	var reg_exp = new RegExp("^[a-zA-Z][a-zA-Z0-9]{5,15}$", "g");
+	var match = reg_exp.exec(id);
+
+	// 아이디가 영문/숫자 조합이 아닌경우
+	if(match == null) 
+	    	return false;
+	// 아이디가 영문/숫자 조합인 경우
+	     return true;
+}
+
+function isPw(pw){
+	
+	 var reg = /^.*(?=.{8})(?=.*[0-9])(?=.*[a-zA-Z])(?=.*[~!@\#$%^&*\()\=+_']).*$/;
+
+	 if(reg.test(pw)) //비밀번호 영문/숫자
+		 return true;
+	 return false;
+}
+
+function isKorean(str){
+	
+	var pattern=/[^(가-?)]/; 
+
+	 if(pattern.test(str)) //한글인 경우
+	    	return true;
+	     return false;
+
+}
+
+function isEmail(str){
+	
+	var pattern=/^((\w|[\-\.])+)@((\w|[\-\.])+)\.([A-Za-z]+)$/;
+	
+	 if(pattern.test(str)) //이메일인 경우
+	    	return true;
+	     return false;
+}
+*//**
+ * 문자열 을 maxlen만큼 잘라서 ...을 붙힌다.
+ *//*
+function cutString(str,maxlen){
+	return cutStringHaveAdd(str,maxlen,'...');
+}
+function cutStringHaveAdd(str,maxlen,_add){
+
+	if(str.length > maxlen){
+		return str.substring(0,maxlen)+_add;
+	}else{
+		return str;
+	}
+}
+
+//공지사항, 관리자부분에 전체보기 조회 시 이전의 검색어 제거하는 부분
+$(document).change(function(){
+	if( "total" == $("#type option:selected").val() ){
+		$("#searchInfo").val("");
+	}
+});*/
+
+
+
+/*
+function formSubmit(type) {
+
+	if(!validateCheck(type)){
+		return false;
+	}
+	$("#form").submit();
+}
+
+function validateCheck(type){
+	
+	var adminId = $("#adminId").val();
+	var adminPw = $("#adminPw").val();
+	
+	var custNm = $("#custNm").val();
+	var custCd = $("#custCd").val();
+	var prodGrCd = $("#prodGrCd").val();
+	var prodGrNm = $("#prodGrNm").val();
+	var prodCd = $("#prodCd").val();
+	var prodNm = $("#prodNm").val();
+	var campaignId = $("#campaignId").val();
+	var regularPrice = $("#regularPrice").val();
+	var purchasePrice = $("#purchasePrice").val();
+	var supplyPrice = $("#supplyPrice").val();
+	var campaignCd = $("#campaignCd").val();
+	var campaignNm = $("#campaignNm").val();
+	var startDy = $("#startDy").val();
+	var endDy = $("#endDy").val();
+	
+	var mdn = $("#mdn").val();
+	var reMdn = $("#reMdn").val();
+	var customersProd = $("#customersProd").val();
+	var mmsTitle = $("#mmsTitle").val();
+	var rMdn = $("#rMdn").val();
+	var msg = $("#msg").val();
+	var firstMsg = $("#firstMsg").val();
+	var secondMsg = $("#secondMsg").val();
+	
+	switch (type) {
+	case "excel":
+		$("#requestType").val("excel");
+		break;
+	case "customersLogin":
+		if(isNull(adminId)){
+			alert("아이디를 입력바랍니다.");
+			return false;
+		}
+		if(isNull(adminPw)){
+			alert("비밀번호를 입력바랍니다.");
+			return false;
+		}
+		break;
+	case "customers":
+		if (isNull(custNm)) {
+			alert("고객사명을 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "campaignList":
+		if( isNull(startDy)){
+			alert("캠페인 시작시점을 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(endDy)){
+			alert("캠페인 종료시점을 입력 바랍니다.");
+			return false;
+		}
+		if( startDy > endDy ){
+			alert("캠페인 종료시점이 시작시점보다 작을 수 없습니다.");
+			return false;
+		}
+		if( isNull(campaignCd)){
+			alert("캠페인코드를 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "campaignDetail":
+		if( isNull(startDy)){
+			alert("캠페인 시작시점을 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(endDy)){
+			alert("캠페인 종료시점을 입력 바랍니다.");
+			return false;
+		}
+		if( startDy > endDy ){
+			alert("캠페인 종료시점이 시작시점보다 작을 수 없습니다.");
+			return false;
+		}
+		break;
+	case  "campaignRegister":
+		if( isNull(campaignNm)){
+			alert("캠페인명을 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(startDy)){
+			alert("캠페인 시작시점을 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(endDy)){
+			alert("캠페인 종료시점을 입력 바랍니다.");
+			return false;
+		}
+		if( startDy > endDy ){
+			alert("캠페인 종료시점이 시작시점보다 작을 수 없습니다.");
+			return false;
+		}
+		break;
+	case "customersProdList":
+		if( isNull(custCd)){
+			alert("고객사를 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(campaignCd)){
+			alert("캠페인을 선택 바랍니다.");
+			return false;
+		}
+		break;
+	case "customersProd":
+		if( isNull(custCd)){
+			alert("고객사를 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(campaignCd)){
+			alert("캠페인을 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(prodGrCd)){
+			alert("상품그룹을 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(prodCd)){
+			alert("상품을 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(supplyPrice)){
+			alert("공급가를 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "prodGrCd":
+		if( isNull(prodGrNm)){
+			alert("상품그룹명을 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "prodCd":
+		if( isNull(prodGrCd)){
+			alert("상품그룹을 선택 바랍니다.");
+			return false;
+		}
+		break;
+	case "prodCdRegister":
+		if( isNull(prodGrCd)){
+			alert("상품그룹을 선택 바랍니다.");
+			return false;
+		}
+		if( isNull(prodNm)){
+			alert("상품명을 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(campaignId)){
+			alert("캠페인ID를 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(prodCd)){
+			alert("상품코드를 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(regularPrice)){
+			alert("정상가를 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(purchasePrice)){
+			alert("매입가를 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "prodCdDetail":
+		if( isNull(regularPrice)){
+			alert("정상가를 입력 바랍니다.");
+			return false;
+		}
+		if( isNull(purchasePrice)){
+			alert("매입가를 입력 바랍니다.");
+			return false;
+		}
+		break;
+	case "couponSent":
+		if( isNull(mdn)){
+			alert("고객 휴대폰 번호를 입력 바랍니다.");
+			return false;
+		}
+		if( 10 > mdn.length || 11 < mdn.length){
+			alert("휴대폰 번호는 10~11자로 입력바랍니다.");
+			return false;
+		}
+		if( null == isMdn(mdn)){
+			alert("휴대폰 번호를 확인바랍니다.");
+			return false;
+		}
+		//if( isNull(customersProd)){
+		//	alert("상품을 선택바랍니다.");
+		//	return false;
+		//}
+		//if( isNull(mmsTitle)){
+		//	alert("MMS 제목을 입력바랍니다.");
+		//	return false;
+		//}
+		//if( 50 < getByteLength(mmsTitle)){
+		//	alert("MMS 제목은 한글기준으로 50자리까지 입력가능합니다.");
+		//	return false;
+		//}
+		if( isNull(rMdn)){
+			alert("회신번호를 입력바랍니다.");
+			return false;
+		}
+		if( isNaN(rMdn)){
+			alert("회신번호를 확인바랍니다.");
+			return false;
+		}
+		if( isNull(msg)){
+			alert("발송문구를 입력바랍니다.");
+			return false;
+		}
+		if( 200 < getByteLength(msg)){
+			alert("발송문구는 한글기준으로 100자리까지 입력가능합니다.");
+			return false;
+		}
+		break;
+	case "couponResent":
+		if( isNull(reMdn)){
+			alert("고객 휴대폰 번호를 입력 바랍니다.");
+			return false;
+		}
+		if( 10 > reMdn.length || 11 < reMdn.length){
+			alert("휴대폰 번호는 10~11자로 입력바랍니다.");
+			return false;
+		}
+		if( null == isMdn(reMdn)){
+			alert("휴대폰 번호를 확인바랍니다.");
+			return false;
+		}
+		break;
+	case "couponStatistics":
+		$("#requestType").val("");
+		if( isNull(startDy)){
+			alert("시작시점을 입력바랍니다.");
+			return false;
+		}
+		if( isNull(endDy)){
+			alert("종료시점을 입력바랍니다.");
+			return false;
+		}
+		if( startDy > endDy ){
+			alert("종료시점이 시작시점보다 작을 수 없습니다.");
+			return false;
+		}
+		break;
+	case "defaultMessage":
+		if( 200 < getByteLength(firstMsg)){
+			alert("발송문구1는 한글기준으로 100자리까지 입력가능합니다.");
+			return false;
+		}
+		if( 200 < getByteLength(secondMsg)){
+			alert("발송문구2는 한글기준으로 100자리까지 입력가능합니다.");
+			return false;
+		}
+		break;
+	case "bulkSent":
+		if( isNull(customersProd)){
+			alert("상품을 선택바랍니다.");
+			return false;
+		}
+		//if( isNull(mmsTitle)){
+		//	alert("MMS 제목을 입력바랍니다.");
+		//	return false;
+		//}
+		//if( 50 < getByteLength(mmsTitle)){
+		//	alert("MMS 제목은 한글기준으로 50자리까지 입력가능합니다.");
+		//	return false;
+		//}
+		//if( isNull(rMdn)){
+		//	alert("회신번호를 입력바랍니다.");
+		//	return false;
+		//}
+		if( isNaN(rMdn)){
+			alert("회신번호를 확인바랍니다.");
+			return false;
+		}
+		if( isNull(msg)){
+			alert("발송문구를 입력바랍니다.");
+			return false;
+		}
+		if( 200 < getByteLength(msg)){
+			alert("발송문구는 한글기준으로 100자리까지 입력가능합니다.");
+			return false;
+		}
+		var retVal = 0;
+		
+		$("input[name='ch']").each(function(i) {
+			if ($(this).prop("checked")) {
+				if( "01" == $(this).val()){
+					alert("유효하지 않은 번호를 선택할 수 없습니다.");
+					retVal++;
+					return false;
+				}
+			}
+		});
+		if( 0 < retVal){
+			return false;
+		}
+		$("input[name='ch']").each(function(i) {
+			if ($(this).prop("checked")) {
+					retVal++;
+				}
+		});
+		if( 0 == retVal){
+			alert("발송할 휴대폰 번호를 선택하시기 바랍니다.");
+			return false;
+		}
+		break;
+	}
+	return true;
+}
+
+
+function formReset() {
+	$("#form").each(function() {
+		this.reset();
+	});
+}
+
+$(document).ready(function() {
+	var clareCalendar = koreanDateTransForDatePicker();
+	$("#startDy").datepicker(clareCalendar);
+	$("#endDy").datepicker(clareCalendar);
+	
+	$("#custNm").keypress(function(e) {
+		//e.preventDefault(); 
+		if (e.keyCode == 13) {
+			formSubmit('customers');
+			return false;
+		}
+	});
+	$("#prodGrNm").keypress(function(e) {
+		//e.preventDefault(); 
+		if (e.keyCode == 13) {
+			formSubmit('prodGrCd');
+			return false;
+		}
+	});
+	$("#supplyPrice").keypress(function(e) {
+		//e.preventDefault(); 
+		if (e.keyCode == 13) {
+			formSubmit('customersProd');
+			return false;
+		}
+	});
+	$("#reMdn").keypress(function(e) {
+		//e.preventDefault(); 
+		if (e.keyCode == 13) {
+			formSubmit('couponResent');
+			return false;
+		}
+	});
+	$("#adminPw").keypress(function(e) {
+		//e.preventDefault(); 
+		if (e.keyCode == 13) {
+			formSubmit('customersLogin');
+			return false;
+		}
+	});
+});
+*/
+
+/*$(document).ready(function(){
+$("#close").click(function(){
+	 var code = document.getElementById("code").getAttribute("value");
+	 var oldValue = document.getElementById("oldAmount").getAttribute("value");
+	 alert(code);
+	 alert(oldValue);
+	 document.limitForm.dcShopAmt.value = oldValue;
+	 //getElementById("00").setAttribute("value", oldValue);
+     $.unblockUI({ fadeOut:500});
+ });
+
+});*/
+
+//close
+
